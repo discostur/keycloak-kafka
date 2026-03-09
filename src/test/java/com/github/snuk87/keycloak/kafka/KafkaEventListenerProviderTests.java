@@ -1,5 +1,6 @@
 package com.github.snuk87.keycloak.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,7 +10,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.producer.MockProducer;
-import org.apache.kafka.clients.producer.RoundRobinPartitioner;
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,7 +83,12 @@ class KafkaEventListenerProviderTests {
 	@Test
 	void shouldNotBlockWhenKafkaIsUnavailable() throws Exception {
 		// Create a non-auto-completing MockProducer to simulate Kafka unavailability
-		MockProducer<String, String> slowProducer = new MockProducer<>(false, new RoundRobinPartitioner(), new StringSerializer(), new StringSerializer());
+		MockProducer<String, String> slowProducer = new MockProducer<String, String>(false, new Partitioner() {
+			@Override
+			public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) { return 0; }
+			@Override public void close() {}
+			@Override public void configure(Map<String, ?> configs) {}
+		}, new StringSerializer(), new StringSerializer());
 
 		
 		KafkaProducerFactory slowFactory = (clientId, bootstrapServer, optionalProperties) -> slowProducer;
@@ -111,6 +118,40 @@ class KafkaEventListenerProviderTests {
 		
 		// Verify the message was queued (even though not yet completed)
 		assertEquals(1, slowProducer.history().size());
+	}
+
+	@Test
+	void shouldProduceEventForEachConfiguredEventType() throws Exception {
+		listener = new KafkaEventListenerProvider("", "", "",
+				new String[] { "REGISTER", "LOGIN", "LOGOUT" }, "admin-events", Map.of(), factory);
+		MockProducer<?, ?> producer = getProducerUsingReflection();
+
+		Event loginEvent = new Event();
+		loginEvent.setType(EventType.LOGIN);
+		listener.onEvent(loginEvent);
+
+		Event logoutEvent = new Event();
+		logoutEvent.setType(EventType.LOGOUT);
+		listener.onEvent(logoutEvent);
+
+		assertEquals(2, producer.history().size());
+	}
+
+	@Test
+	void shouldIgnoreInvalidEventTypesOnConstruction() throws Exception {
+		assertDoesNotThrow(() -> new KafkaEventListenerProvider("", "", "",
+				new String[] { "NOT_A_REAL_EVENT", "REGISTER" }, "admin-events", Map.of(), factory));
+
+		listener = new KafkaEventListenerProvider("", "", "",
+				new String[] { "NOT_A_REAL_EVENT", "REGISTER" }, "admin-events", Map.of(), factory);
+		MockProducer<?, ?> producer = getProducerUsingReflection();
+
+		Event event = new Event();
+		event.setType(EventType.REGISTER);
+		listener.onEvent(event);
+
+		// REGISTER is valid and should still be produced; the invalid type is just skipped
+		assertEquals(1, producer.history().size());
 	}
 
 }

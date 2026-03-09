@@ -15,11 +15,11 @@ Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak even
 
 **Tested with** 
 
-Kafka version: `2.12-2.1.x`, `2.12-2.4.x`, `2.12-2.5.x`, `2.13-2.8`, `2.13-3.3.x`
+Kafka version: `2.12-2.1.x`, `2.12-2.4.x`, `2.12-2.5.x`, `2.13-2.8`, `2.13-3.3.x`, `4.2.x`
 
-Keycloak version: `19.0.x, 21.0.x`
+Keycloak version: `19.0.x, 21.0.x, 26.x`
 
-Java version: `17`
+Java version: `17`, `21`
 
 Check out [this older version](https://github.com/SnuK87/keycloak-kafka/tree/1.1.1) to run the module on a Wildfly server
 
@@ -31,6 +31,15 @@ Just use the following command to build the jar file.
 ```bash
 mvn clean package
 ```
+
+## Running Tests
+Unit tests can be run locally with Maven or via Docker (no local Maven installation required):
+
+```bash
+docker compose --profile test run --rm test
+```
+
+Maven dependencies are cached in a named Docker volume (`maven-cache`) so subsequent runs are fast.
 
 ## Installation
 First you need to build or [download](https://github.com/SnuK87/keycloak-kafka/releases) the keycloak-kafka module.
