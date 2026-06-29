@@ -20,7 +20,7 @@ Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak even
 
 **Tested with** 
 
-Kafka version: `2.12-2.1.x`, `2.12-2.4.x`, `2.12-2.5.x`, `2.13-2.8`, `2.13-3.3.x`, `4.2.x`, `4.3.x`
+Kafka version: `2.1.x` – `4.3.x`
 
 Keycloak version: `19.0.x`, `21.0.x`, `26.5.x`, `26.6.x`
 
