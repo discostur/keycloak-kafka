@@ -5,7 +5,7 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM quay.io/keycloak/keycloak:26.5.5
+FROM quay.io/keycloak/keycloak:26.6.4
 COPY --from=builder /build/target/keycloak-kafka-*-jar-with-dependencies.jar /opt/keycloak/providers/
 RUN /opt/keycloak/bin/kc.sh build
 
