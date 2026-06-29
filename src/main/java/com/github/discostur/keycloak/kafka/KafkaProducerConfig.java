@@ -1,4 +1,4 @@
-package com.github.snuk87.keycloak.kafka;
+package com.github.discostur.keycloak.kafka;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,6 +1,11 @@
 # Keycloak Kafka Module
 Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak events to [Kafka](https://kafka.apache.org/).
 
+> **Fork notice.** This is a maintained fork of [SnuK87/keycloak-kafka](https://github.com/SnuK87/keycloak-kafka)
+> (Apache License 2.0). It continues development that stalled upstream — notably Apache Kafka 4.2.x /
+> Keycloak 26.5.x support, a KRaft-based docker-compose, expanded tests, and a renamed
+> `com.github.discostur` namespace. See [`NOTICE`](NOTICE) for attribution.
+
 - [Keycloak Kafka Module](#keycloak-kafka-module)
   * [Build](#build)
   * [Installation](#installation)
