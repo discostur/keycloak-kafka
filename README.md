@@ -22,9 +22,11 @@ Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak even
 
 Kafka version: `2.12-2.1.x`, `2.12-2.4.x`, `2.12-2.5.x`, `2.13-2.8`, `2.13-3.3.x`, `4.2.x`
 
-Keycloak version: `19.0.x, 21.0.x, 26.x`
+Keycloak version: `19.0.x`, `21.0.x`, `26.5.x`
 
 Java version: `17`, `21`
+
+> Current release (`1.5.0`) is built and tested against **Kafka 4.2.0**, **Keycloak 26.5.5** and **Java 21**.
 
 Check out [this older version](https://github.com/SnuK87/keycloak-kafka/tree/1.1.1) to run the module on a Wildfly server
 
@@ -47,7 +49,7 @@ docker compose --profile test run --rm test
 Maven dependencies are cached in a named Docker volume (`maven-cache`) so subsequent runs are fast.
 
 ## Installation
-First you need to build or [download](https://github.com/SnuK87/keycloak-kafka/releases) the keycloak-kafka module.
+First you need to build or [download](https://github.com/discostur/keycloak-kafka/releases) the keycloak-kafka module.
 
 To install the module to your keycloak server you have to configure the module and deploy it.
 If you deploy the module without configuration, your keycloak server will fail to start throwing a `NullPointerException`.
