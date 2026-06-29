@@ -18,22 +18,25 @@ Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak even
   * [Docker Container](#docker-container)  
   * [Sample Client](#sample-client)
 
-**Tested with** 
+**Compatibility**
 
-Kafka version: `2.1.x` – `4.3.x`
+| Component      | Supported         | Built & tested against |
+|----------------|-------------------|------------------------|
+| Keycloak       | `19.x` – `26.6.x` | `26.6.4`               |
+| Kafka broker   | `2.1.x` – `4.3.x` | client `4.3.1`         |
+| Java (runtime) | `17` or newer     | JDK `21`               |
 
-Keycloak version: `19.0.x`, `21.0.x`, `26.5.x`, `26.6.x`
+Why this range holds:
 
-Java version: `17`, `21`
+- The artifact is compiled to **Java 17** bytecode, so it loads on any Keycloak server running Java 17+.
+- The Keycloak SPI is `provided` — supplied by the server at runtime, not bundled in the jar — and the
+  APIs used (`EventListenerProviderFactory`, `Event`, `AdminEvent`, `Config.Scope`) are stable across the range.
+- The bundled Kafka client `4.3.1` talks to any broker `2.1` or newer ([KIP-896](https://cwiki.apache.org/confluence/display/KAFKA/KIP-896%3A+Remove+old+client+protocol+API+versions+in+Kafka+4.0)).
 
-> The current `master` is built and tested against **Kafka 4.3.1** and **Keycloak 26.6.4** on **JDK 21**,
-> but stays compatible with the older versions listed above:
-> - the artifact is compiled to **Java 17** bytecode, so it loads on any Keycloak server running Java 17+;
-> - the Keycloak SPI is `provided` (supplied by the server at runtime, not bundled in the jar);
-> - the bundled Kafka client is backwards compatible with older brokers.
->
-> To build against a specific Keycloak / Kafka version, override the Maven properties, e.g.
-> `mvn clean package -Dkeycloak.version=19.0.3 -Dkafka.version=3.3.2`.
+CI builds and runs the integration test against the **newest** versions (the *Built & tested against*
+column). The lower bound is verified to compile against Keycloak `19.0.3` / Kafka `3.3.2`; intermediate
+versions are expected to work but are not exercised. To build against a specific version, override the
+Maven properties, e.g. `mvn clean package -Dkeycloak.version=19.0.3 -Dkafka.version=3.3.2`.
 
 ## Build
 You can simply use Maven to build the jar file. Thanks to the assembly plugin the build process will create a fat jar that includes all dependencies and makes the deployment quite easy.
