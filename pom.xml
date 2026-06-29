@@ -8,7 +8,9 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.release>21</maven.compiler.release>
+		<!-- Target Java 17 bytecode so the artifact loads on Keycloak servers running Java 17+
+		     (Keycloak 19/21 commonly run on 17), while still building fine on JDK 21. -->
+		<maven.compiler.release>17</maven.compiler.release>
 
 		<keycloak.version>26.6.4</keycloak.version>
 		<kafka.version>4.3.1</kafka.version>

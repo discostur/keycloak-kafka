@@ -26,8 +26,14 @@ Keycloak version: `19.0.x`, `21.0.x`, `26.5.x`, `26.6.x`
 
 Java version: `17`, `21`
 
-> The current `master` is built and tested against **Kafka 4.3.1**, **Keycloak 26.6.4** and **Java 21**.
-> The Keycloak client version is pinned in `pom.xml` and must match the Keycloak server you deploy on.
+> The current `master` is built and tested against **Kafka 4.3.1** and **Keycloak 26.6.4** on **JDK 21**,
+> but stays compatible with the older versions listed above:
+> - the artifact is compiled to **Java 17** bytecode, so it loads on any Keycloak server running Java 17+;
+> - the Keycloak SPI is `provided` (supplied by the server at runtime, not bundled in the jar);
+> - the bundled Kafka client is backwards compatible with older brokers.
+>
+> To build against a specific Keycloak / Kafka version, override the Maven properties, e.g.
+> `mvn clean package -Dkeycloak.version=19.0.3 -Dkafka.version=3.3.2`.
 
 ## Build
 You can simply use Maven to build the jar file. Thanks to the assembly plugin the build process will create a fat jar that includes all dependencies and makes the deployment quite easy.
