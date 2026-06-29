@@ -18,15 +18,25 @@ Simple module for [Keycloak](https://www.keycloak.org/) to produce keycloak even
   * [Docker Container](#docker-container)  
   * [Sample Client](#sample-client)
 
-**Tested with** 
+**Compatibility**
 
-Kafka version: `2.12-2.1.x`, `2.12-2.4.x`, `2.12-2.5.x`, `2.13-2.8`, `2.13-3.3.x`, `4.2.x`
+| Component      | Supported         | Built & tested against |
+|----------------|-------------------|------------------------|
+| Keycloak       | `19.x` – `26.6.x` | `26.6.4`               |
+| Kafka broker   | `2.1.x` – `4.3.x` | client `4.3.1`         |
+| Java (runtime) | `17` or newer     | JDK `21`               |
 
-Keycloak version: `19.0.x`, `21.0.x`, `26.5.x`
+Why this range holds:
 
-Java version: `17`, `21`
+- The artifact is compiled to **Java 17** bytecode, so it loads on any Keycloak server running Java 17+.
+- The Keycloak SPI is `provided` — supplied by the server at runtime, not bundled in the jar — and the
+  APIs used (`EventListenerProviderFactory`, `Event`, `AdminEvent`, `Config.Scope`) are stable across the range.
+- The bundled Kafka client `4.3.1` talks to any broker `2.1` or newer ([KIP-896](https://cwiki.apache.org/confluence/display/KAFKA/KIP-896%3A+Remove+old+client+protocol+API+versions+in+Kafka+4.0)).
 
-> Current release (`1.5.0`) is built and tested against **Kafka 4.2.0**, **Keycloak 26.5.5** and **Java 21**.
+CI builds and runs the integration test against the **newest** versions (the *Built & tested against*
+column). The lower bound is verified to compile against Keycloak `19.0.3` / Kafka `3.3.2`; intermediate
+versions are expected to work but are not exercised. To build against a specific version, override the
+Maven properties, e.g. `mvn clean package -Dkeycloak.version=19.0.3 -Dkafka.version=3.3.2`.
 
 ## Build
 You can simply use Maven to build the jar file. Thanks to the assembly plugin the build process will create a fat jar that includes all dependencies and makes the deployment quite easy.
@@ -45,6 +55,15 @@ docker compose --profile test run --rm test
 
 Maven dependencies are cached in a named Docker volume (`maven-cache`) so subsequent runs are fast.
 
+There is also an end-to-end integration test (`KafkaEventListenerProviderIT`) that produces an event to a
+real Kafka broker started via [Testcontainers](https://java.testcontainers.org/) and consumes it back.
+It runs during `mvn verify` and **skips itself automatically when no Docker daemon is available**, so it
+needs an accessible Docker socket (CI runners and most local Docker setups provide one):
+
+```bash
+mvn verify
+```
+
 ## Installation
 First you need to build or [download](https://github.com/discostur/keycloak-kafka/releases) the keycloak-kafka module.
 
@@ -62,7 +81,9 @@ The following properties can be set via environment variables (e.g. `${KAFKA_TOP
 
 - `bootstrapServers` (env `KAFKA_BOOTSTRAP_SERVERS`): A comma separated list of available brokers.
 
-- `events` (env `KAFKA_EVENTS`): The events that will be send to kafka.
+- `events` (env `KAFKA_EVENTS`): A comma separated list of the event types that will be sent to kafka.
+  Defaults to `REGISTER` when not set. Unknown event types are skipped and logged with a warning, so
+  check the logs if an expected event never arrives.
 
 - `topicAdminEvents` (env `KAFKA_ADMIN_TOPIC`): (Optional) The name of the kafka topic to where the admin events will be produced to. No events will be produced when this property isn't set.
 
@@ -98,6 +119,17 @@ As mentioned above the kafka client can be configured by passing parameters to t
   --spi-events-listener-kafka-ssl-truststore-location kafka.client.truststore.jks \
   --spi-events-listener-kafka-ssl-truststore-password test1234
 ```
+
+### Delivery semantics
+Events are produced **asynchronously** (fire-and-forget): `onEvent` never blocks the Keycloak request
+thread waiting for Kafka. If a send fails the error is logged but the event is **not retried** and may be
+lost. Tune the relevant Kafka producer settings to match your durability needs, e.g.:
+
+- `acks` — set to `all` for the strongest delivery guarantee.
+- `retries` / `delivery.timeout.ms` — how hard the client retries before giving up.
+- `max.block.ms` — how long a send may block when the broker is unreachable or buffers are full.
+
+All of these can be set via the `KAFKA_*` env vars or `--spi-events-listener-kafka-*` parameters described above.
 
 ## Module Deployment
 Copy the `keycloak-kafka-<version>-jar-with-dependencies.jar` into the `$KEYCLOAK_HOME/providers` folder. Keycloak will automatically 

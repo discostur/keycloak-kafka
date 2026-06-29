@@ -25,11 +25,6 @@ public class KafkaEventListenerProviderFactory implements EventListenerProviderF
 
 	@Override
 	public EventListenerProvider create(KeycloakSession session) {
-		if (instance == null) {
-			instance = new KafkaEventListenerProvider(bootstrapServers, clientId, topicEvents, events, topicAdminEvents,
-					kafkaProducerProperties, new KafkaStandardProducerFactory());
-		}
-
 		return instance;
 	}
 
@@ -70,6 +65,12 @@ public class KafkaEventListenerProviderFactory implements EventListenerProviderF
 		}
 
 		kafkaProducerProperties = KafkaProducerConfig.init(config);
+
+		// Build the provider eagerly: config is fully resolved here and Keycloak calls init() once
+		// at startup. This makes create() a cheap, thread-safe getter (no lazy double-checked init
+		// race) and fails fast if the Kafka producer cannot be constructed.
+		instance = new KafkaEventListenerProvider(bootstrapServers, clientId, topicEvents, events, topicAdminEvents,
+				kafkaProducerProperties, new KafkaStandardProducerFactory());
 	}
 
 	@Override
@@ -79,6 +80,8 @@ public class KafkaEventListenerProviderFactory implements EventListenerProviderF
 
 	@Override
 	public void close() {
-		// ignore
+		if (instance != null) {
+			instance.close();
+		}
 	}
 }

@@ -2,6 +2,7 @@ package com.github.discostur.keycloak.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
@@ -153,5 +154,52 @@ class KafkaEventListenerProviderTests {
 		// REGISTER is valid and should still be produced; the invalid type is just skipped
 		assertEquals(1, producer.history().size());
 	}
+
+	@Test
+	void shouldCloseProducerOnClose() throws Exception {
+		MockProducer<?, ?> producer = getProducerUsingReflection();
+		assertFalse(producer.closed());
+
+		listener.close();
+
+		assertTrue(producer.closed(), "close() must close the underlying Kafka producer");
+	}
+
+	@Test
+	void shouldNotThrowWhenSendFails() throws Exception {
+		// Non-auto-completing producer so we can drive the send callback's error branch manually.
+		MockProducer<String, String> producer = new MockProducer<>(false, NOOP_PARTITIONER,
+				new StringSerializer(), new StringSerializer());
+		KafkaProducerFactory failingFactory = (clientId, bootstrapServer, props) -> producer;
+		listener = new KafkaEventListenerProvider("", "", "", new String[] { "REGISTER" }, "admin-events", Map.of(),
+				failingFactory);
+
+		Event event = new Event();
+		event.setType(EventType.REGISTER);
+		listener.onEvent(event);
+
+		// Firing the callback with an exception must be logged, not propagated.
+		assertDoesNotThrow(() -> producer.errorNext(new RuntimeException("broker down")));
+		assertEquals(1, producer.history().size());
+	}
+
+	@Test
+	void shouldNotThrowWhenEventIsNull() {
+		assertDoesNotThrow(() -> listener.onEvent((Event) null));
+	}
+
+	@Test
+	void shouldNotThrowWhenAdminEventIsNull() {
+		assertDoesNotThrow(() -> listener.onEvent((AdminEvent) null, false));
+	}
+
+	private static final Partitioner NOOP_PARTITIONER = new Partitioner() {
+		@Override
+		public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+			return 0;
+		}
+		@Override public void close() {}
+		@Override public void configure(Map<String, ?> configs) {}
+	};
 
 }

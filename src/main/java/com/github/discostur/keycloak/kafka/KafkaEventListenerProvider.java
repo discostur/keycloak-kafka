@@ -42,8 +42,12 @@ public class KafkaEventListenerProvider implements EventListenerProvider {
 				EventType eventType = EventType.valueOf(event.toUpperCase());
 				this.events.add(eventType);
 			} catch (IllegalArgumentException e) {
-				LOG.debug("Ignoring event >" + event + "<. Event does not exist.");
+				LOG.warnf("Ignoring unknown event type '%s'. Check the configured events / KAFKA_EVENTS list.", event);
 			}
+		}
+
+		if (this.events.isEmpty()) {
+			LOG.warn("No valid event types configured; no user events will be produced to Kafka.");
 		}
 
 		producer = factory.createProducer(clientId, bootstrapServers, kafkaProducerProperties);
@@ -51,41 +55,43 @@ public class KafkaEventListenerProvider implements EventListenerProvider {
 	}
 
 	private void produceEvent(String eventAsString, String topic) {
-		LOG.debug("Produce to topic: " + topic + " ...");
+		LOG.debugf("Produce to topic: %s ...", topic);
 		ProducerRecord<String, String> record = new ProducerRecord<>(topic, eventAsString);
 		producer.send(record, (metadata, exception) -> {
 			if (exception != null) {
-				LOG.error("Failed to send event to Kafka topic " + topic + ": " + exception.getMessage(), exception);
+				LOG.errorf(exception, "Failed to send event to Kafka topic %s", topic);
 			} else {
-				LOG.debug("Produced to topic: " + metadata.topic());
+				LOG.debugf("Produced to topic: %s", metadata.topic());
 			}
 		});
 	}
 
 	@Override
 	public void onEvent(Event event) {
-		if (events.contains(event.getType())) {
+		if (event != null && events.contains(event.getType())) {
 			try {
 				produceEvent(mapper.writeValueAsString(event), topicEvents);
 			} catch (JsonProcessingException e) {
-				LOG.error(e.getMessage(), e);
+				LOG.error("Failed to serialize event to JSON", e);
 			}
 		}
 	}
 
 	@Override
 	public void onEvent(AdminEvent event, boolean includeRepresentation) {
-		if (topicAdminEvents != null) {
+		if (event != null && topicAdminEvents != null) {
 			try {
 				produceEvent(mapper.writeValueAsString(event), topicAdminEvents);
 			} catch (JsonProcessingException e) {
-				LOG.error(e.getMessage(), e);
+				LOG.error("Failed to serialize admin event to JSON", e);
 			}
 		}
 	}
 
 	@Override
 	public void close() {
-		// ignore
+		if (producer != null) {
+			producer.close();
+		}
 	}
 }
