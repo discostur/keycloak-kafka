@@ -28,9 +28,6 @@ Java version: `17`, `21`
 
 > Current release (`1.5.0`) is built and tested against **Kafka 4.2.0**, **Keycloak 26.5.5** and **Java 21**.
 
-Check out [this older version](https://github.com/SnuK87/keycloak-kafka/tree/1.1.1) to run the module on a Wildfly server
-
-
 ## Build
 You can simply use Maven to build the jar file. Thanks to the assembly plugin the build process will create a fat jar that includes all dependencies and makes the deployment quite easy.
 Just use the following command to build the jar file.
